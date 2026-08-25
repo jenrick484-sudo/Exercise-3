@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Parts POS - Per-Item Unique Batch & Live Camera System</title>
+  
+  <!-- JSBARCODE CDN FOR REAL SCANNABLE BARCODES -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  
+  <!-- HTML5 QRCODE & BARCODE SCANNER LIBRARY -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      height: 100vh;
+      background-color: #f8fafc;
+      color: #334155;
+      overflow: hidden;
+    }
+
+    /* LEFT SIDEBAR STYLES */
+    .sidebar {
+      width: 250px;
+      background-color: #1e293b;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      background-color: #0f172a;
+      font-size: 18px;
+      font-weight: 700;
+      border-bottom: 1px solid #334155;
+    }
+
+    .sidebar-header span {
+      display: block;
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 400;
+      margin-top: 4px;
+    }
+
+    .sidebar-menu {
+      list-style: none;
+      margin-top: 15px;
+    }
+
+    .nav-item {
+      padding: 14px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+
+    .nav-item:hover {
+      background-color: #334155;
+      color: #fff;
+    }
+
+    .nav-item.active {
+      background-color: #2563eb;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* MAIN CONTENT AREA */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .top-navbar {
+      background-color: #ffffff;
+      padding: 16px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .top-navbar h2 {
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .content-area {
+      padding: 24px;
+    }
+
+    .view-content {
+      display: none;
+    }
+
+    .view-content.active {
+      display: block;
+    }
+
+    /* CARD & FORM STYLES */
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      border: 1px solid #e2e8f0;
+      margin-bottom: 24px;
+    }
+
+    .card-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .box-packaging-container {
+      display: none;
+      background-color: #f1f5f9;
+      border: 1px dashed #cbd5e1;
+      padding: 16px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #475569;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      background-color: #fff;
+      text-transform: uppercase;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      background-color: #fff;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary { background-color: #2563eb; color: white; }
+    .btn-secondary { background-color: #e2e8f0; color: #334155; }
+    .btn-secondary:hover { background-color: #cbd5e1; }
+    .btn-success { background-color: #16a34a; color: white; }
+    .btn-danger { background-color: #ef4444; color: white; }
+
+    /* MULTI-IMAGE UPLOADER STYLES */
+    .image-upload-wrapper {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .image-preview-container {
+      width: 100%;
+      min-height: 100px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 12px;
+      background-color: #f8fafc;
+    }
+
+    .thumb-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .thumb-item {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+    }
+
+    .thumb-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .remove-thumb-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* SEARCH BAR STYLES */
+    .search-container {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px 12px 42px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 14px;
+      background-color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 16px;
+    }
+
+    /* LIVE CAMERA SCANNER BOX */
+    #interactive-camera-wrapper {
+      display: none;
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    /* MASTER ITEM ROW LIST STYLES */
+    .master-row-card {
+      background: #ffffff;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .master-row-card:hover {
+      border-color: #2563eb;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+    }
+
+    .master-row-header {
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #ffffff;
+    }
+
+    .master-row-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .master-row-thumb {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      background-color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-size: 22px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .master-row-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .master-row-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+
+    .master-row-sub {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .master-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .batch-expand-panel {
+      background-color: #f8fafc;
+      padding: 16px;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    .batch-panel-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #2563eb;
+      text-transform: uppercase;
+    }
+
+    /* CARD GRID DISPLAY FOR BATCHES */
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .item-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .item-card:hover {
+      transform: translateY(-4px);
+      border-color: #2563eb;
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.1);
+    }
+
+    .item-card.selected {
+      border: 2px solid #2563eb;
+      background-color: #eff6ff;
+    }
+
+    .card-img-placeholder {
+      background-color: #f1f5f9;
+      height: 100px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #94a3b8;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card-img-placeholder img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-count-badge {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(15, 23, 42, 0.75);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .item-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+    }
+
+    .item-oem {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .item-subtitle {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .item-price {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .stock-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    .stock-green { background-color: #dcfce7; color: #166534; }
+    .stock-orange { background-color: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+    .stock-red { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+    .barcode-card-box {
+      margin-top: 8px;
+      text-align: center;
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 4px;
+      border: 1px dashed #cbd5e1;
+    }
+
+    .barcode-svg {
+      max-width: 100%;
+      height: 35px;
+    }
+
+    .selected-master-info {
+      background-color: #eff6ff;
+      border-left: 4px solid #2563eb;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    /* POS SALE MODULE STYLES */
+    .pos-container {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .pos-catalog-section {
+      flex: 1.2;
+    }
+
+    .pos-cart-section {
+      flex: 1;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      position: sticky;
+      top: 0;
+    }
+
+    .cart-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+    }
+
+    .cart-table th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #64748b;
+      padding: 8px 6px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .cart-table td {
+      padding: 10px 6px;
+      font-size: 13px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .cart-qty-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .cart-summary {
+      background-color: #f8fafc;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .cart-summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .cart-summary-row.total {
+      font-size: 18px;
+      font-weight: 800;
+      color: #2563eb;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 8px;
+    }
+
+    /* MODAL POPUP STYLES */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .modal-card {
+      background-color: #ffffff;
+      width: 90%;
+      max-width: 680px;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+      overflow: hidden;
+      animation: modalSlideUp 0.25s ease-out;
+    }
+
+    @keyframes modalSlideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      background-color: #1e293b;
+      color: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 { font-size: 18px; font-weight: 700; text-transform: uppercase; }
+    .modal-header .modal-subtitle { font-size: 12px; color: #94a3b8; text-transform: uppercase; }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .modal-close-btn:hover { color: #fff; }
+
+    .modal-body {
+      padding: 24px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-gallery-main {
+      width: 100%;
+      height: 220px;
+      background-color: #f1f5f9;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      cursor: zoom-in;
+      position: relative;
+    }
+
+    .modal-gallery-main img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .click-zoom-hint {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(15, 23, 42, 0.7);
+      color: #fff;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .modal-thumb-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+      padding-bottom: 4px;
+    }
+
+    .modal-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 6px;
+      object-fit: cover;
+      cursor: pointer;
+      border: 2px solid transparent;
+      opacity: 0.7;
+    }
+
+    .modal-thumb.active, .modal-thumb:hover {
+      border-color: #2563eb;
+      opacity: 1;
+    }
+
+    .info-profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .profile-item {
+      background-color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .profile-item.full-width { grid-column: span 2; }
+    .profile-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+    .profile-value { font-size: 13px; font-weight: 600; color: #0f172a; text-transform: uppercase; }
+    .na-text { color: #94a3b8; font-style: italic; font-weight: 400; text-transform: none; }
+
+    .modal-batches-section {
+      border-top: 2px dashed #e2e8f0;
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+
+    .batch-barcode-card {
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .batch-barcode-info {
+      font-size: 12px;
+    }
+
+    /* FULLSCREEN LIGHTBOX MODAL */
+    .lightbox-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: rgba(0, 0, 0, 0.88);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100000;
+    }
+
+    .lightbox-card {
+      position: relative;
+      background-color: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 85vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .lightbox-img {
+      max-width: 75vw;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .lightbox-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      font-size: 24px;
+      font-weight: bold;
+      color: #0f172a;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .lightbox-btn:hover { background: #ffffff; transform: translateY(-50%) scale(1.1); }
+    .lightbox-prev { left: -24px; }
+    .lightbox-next { right: -24px; }
+
+    .lightbox-close {
+      position: absolute;
+      top: -15px;
+      right: -15px;
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .lightbox-counter { margin-top: 12px; font-size: 13px; font-weight: 700; color: #475569; }
+  </style>
+</head>
+<body>
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      Auto Parts POS
+      <span>Inventory System</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li class="nav-item active" onclick="switchView('view-sale', this)">
+        🛒 Sale / Checkout
+      </li>
+      <li class="nav-item" onclick="switchView('view-master', this)">
+        📦 Master Items (Step 1)
+      </li>
+      <li class="nav-item" onclick="switchView('view-coding', this)">
+        🏷️ Item Coding (Step 2)
+      </li>
+      <li class="nav-item" onclick="switchView('view-inventory', this)">
+        📊 Central Inventory
+      </li>
+    </ul>
+  </div>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="main-wrapper">
+    <div class="top-navbar">
+      <h2 id="pageTitle">Point of Sale / Checkout Module</h2>
+      <span style="font-size: 13px; color: #64748b;">Admin User</span>
+    </div>
+
+    <div class="content-area">
+
+      <!-- VIEW 0: SALE / CHECKOUT MODULE WITH LIVE CAMERA SCANNER -->
+      <div id="view-sale" class="view-content active">
+        <div class="pos-container">
+          
+          <!-- CATALOG & BARCODE SCANNER SECTION -->
+          <div class="pos-catalog-section">
+            <div class="card">
+              <div class="card-title-bar">
+                <div class="card-title">🔍 Scan Barcode or Search Item</div>
+                <button type="button" id="camToggleBtn" class="btn btn-primary" onclick="toggleCameraScanner()">
+                  📷 Open Live Camera Scanner
+                </button>
+              </div>
+
+              <!-- LIVE CAMERA SCANNER CONTAINER -->
+              <div id="interactive-camera-wrapper">
+                <div id="reader"></div>
+                <p style="color:#cbd5e1; font-size:12px; margin-top:8px;">Itapat ang barcode sa harap ng camera...</p>
+              </div>
+
+              <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="saleSearchInput" class="search-input" placeholder="SCAN BARCODE OR SEARCH ITEM / OEM / BRAND..." onkeydown="handleSaleBarcodeKey(event)" oninput="renderSaleGrid()" autofocus>
+              </div>
+
+              <div class="catalog-grid" id="saleCatalogGrid">
+                <!-- Dynamically populated sellable items -->
+              </div>
+            </div>
+          </div>
+
+          <!-- CART & PAYMENT SECTION -->
+          <div class="pos-cart-section">
+            <div class="card-title-bar">
+              <div class="card-title">🛒 Current Order Cart</div>
+              <button class="btn btn-secondary" style="font-size:11px; padding:4px 8px;" onclick="clearCart()">Clear All</button>
+            </div>
+
+            <table class="cart-table">
+              <thead>
+                <tr>
+                  <th>Item / Batch</th>
+                  <th style="text-align:center;">Qty</th>
+                  <th style="text-align:right;">Price</th>
+                  <th style="text-align:right;">Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="cartTableBody">
+                <!-- Cart Items populated via JS -->
+              </tbody>
+            </table>
+
+            <div class="cart-summary">
+              <div class="cart-summary-row">
+                <span>Total Items:</span>
+                <span id="cartTotalItems">0</span>
+              </div>
+              <div class="cart-summary-row total">
+                <span>Grand Total:</span>
+                <span id="cartGrandTotal">₱0.00</span>
+              </div>
+
+              <div style="margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                <div class="form-group">
+                  <label>Cash Tendered (₱)</label>
+                  <input type="number" id="cashTenderedInput" placeholder="0.00" oninput="calculateChange()">
+                </div>
+                <div class="cart-summary-row" style="color:#16a34a;">
+                  <span>Change:</span>
+                  <span id="cartChangeAmount">₱0.00</span>
+                </div>
+                <button type="button" class="btn btn-success" style="width:100%; justify-content:center; padding:12px; margin-top:10px; font-size:15px;" onclick="processCheckout()">
+                  ✅ Complete Checkout & Print Receipt
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- VIEW 1: MASTER ITEM MODULE -->
+      <div id="view-master" class="view-content">
+        <div class="card">
+          <div class="card-title-bar">
+            <div class="card-title">Register New Master Item</div>
+          </div>
+          <form id="masterForm">
+            
+            <div class="form-group">
+              <label>Item Pictures (Take Photo or Select from Gallery — Max 10)</label>
+              <div class="image-upload-wrapper">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" multiple style="display:none" onchange="handleImageUpload(event)">
+                <input type="file" id="galleryInput" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event)">
+                
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('cameraInput').click()">📷 Take Photo</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('galleryInput').click()">🖼️ Select from Gallery</button>
+              </div>
+
+              <div id="imagePreview" class="image-preview-container">
+                <span style="color:#94a3b8; font-size:13px;">No images uploaded yet (0/10)</span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>OEM / Part Number</label>
+                <input type="text" id="oemInput" placeholder="E.G. 90915-YZZD1" required>
+              </div>
+              <div class="form-group">
+                <label>Brand</label>
+                <input type="text" id="brandInput" placeholder="E.G. TOYOTA / DENSO / BOSCH" required>
+              </div>
+              <div class="form-group">
+                <label>Part Name</label>
+                <input type="text" id="partNameInput" placeholder="E.G. OIL FILTER, BRAKE PAD..." required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Vehicle Make</label>
+                <input type="text" id="vehicleMakeInput" placeholder="E.G. TOYOTA">
+              </div>
+              <div class="form-group">
+                <label>Vehicle Model</label>
+                <input type="text" id="vehicleModelInput" placeholder="E.G. VIOS">
+              </div>
+              <div class="form-group">
+                <label>Year / Model Year</label>
+                <input type="text" id="yearInput" placeholder="E.G. 2018–2022">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Engine / Engine Code</label>
+                <input type="text" id="engineInput" placeholder="E.G. 1NZ-FE">
+              </div>
+              <div class="form-group">
+                <label>Unit / Pieces per Set</label>
+                <select id="unitInput" onchange="toggleBoxPackagingFields()">
+                  <option value="pc">1 PC</option>
+                  <option value="set">SET</option>
+                  <option value="box">BOX / CARTON (FLUIDS/BULK)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Position</label>
+                <input type="text" id="positionInput" placeholder="E.G. FRONT / REAR / LEFT">
+              </div>
+            </div>
+
+            <div id="boxFields" class="box-packaging-container">
+              <div style="font-size: 12px; font-weight: 700; color: #2563eb; text-transform: uppercase; margin-bottom: 10px;">
+                📦 Carton Packaging Details
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Pcs per Box / Carton</label>
+                  <input type="number" id="pcsPerBoxInput" placeholder="E.G. 12, 4, 3">
+                </div>
+                <div class="form-group">
+                  <label>Volume / Size per Piece</label>
+                  <input type="text" id="sizePerPcInput" placeholder="E.G. 1L, 4L, 6L">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Origin / Country</label>
+                <input type="text" id="originInput" placeholder="E.G. JAPAN / THAILAND">
+              </div>
+              <div class="form-group">
+                <label>Description / Additional Details</label>
+                <input type="text" id="descInput" placeholder="E.G. GENUINE BOX PACKING...">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 12px 24px;">Save Master Item</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-title-bar">
+            <div class="card-title">Registered Master Items Catalog (Click card to view profile & barcodes)</div>
+          </div>
+          
+          <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="step1Search" class="search-input" placeholder="SEARCH REGISTERED OEM, PART NAME, BRAND OR MODEL..." oninput="renderStep1Grid()">
+          </div>
+
+          <div class="catalog-grid" id="step1Grid">
+            <!-- Dynamically populated cards -->
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: ITEM CODING MODULE WITH LOW STOCK ALERT LIMIT FIELD -->
+      <div id="view-coding" class="view-content">
+        <div class="card">
+          <div class="card-title-bar">
+            <div class="card-title">1. Search & Select Target Master Item</div>
+          </div>
+          
+          <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="step2Search" class="search-input" placeholder="SEARCH MASTER ITEM TO CODE (OEM, PART NAME, BRAND)..." oninput="renderStep2SelectGrid()">
+          </div>
+
+          <div class="catalog-grid" id="step2SelectGrid" style="max-height: 320px; overflow-y: auto; padding: 4px; margin-bottom: 16px;">
+            <!-- Clickable master item cards -->
+          </div>
+
+          <div class="selected-master-info">
+            <strong>Selected Master Item for Coding:</strong>
+            <p id="selectedMasterText">PLEASE SELECT A MASTER ITEM CARD ABOVE...</p>
+          </div>
+
+          <form id="codingForm">
+            <div class="form-group">
+              <label>2. Select Supplier</label>
+              <select id="supplierInput" required>
+                <option value="">SELECT SUPPLIER...</option>
+                <option value="ABC AUTO SUPPLY CO.">ABC AUTO SUPPLY CO.</option>
+                <option value="JAPAPARTS TRADING">JAPAPARTS TRADING</option>
+                <option value="TOYOTA GENUINE PARTS DIRECT">TOYOTA GENUINE PARTS DIRECT</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Cost Price (₱)</label>
+                <input type="number" step="0.01" id="costInput" placeholder="0.00" required>
+              </div>
+              <div class="form-group">
+                <label>Selling Price / SRP (₱)</label>
+                <input type="number" step="0.01" id="sellingInput" placeholder="0.00" required>
+              </div>
+              <div class="form-group">
+                <label>Initial Stock Count</label>
+                <input type="number" id="stockInput" placeholder="0" required>
+              </div>
+              <div class="form-group">
+                <label>Low Stock Warning Limit ⚠️</label>
+                <input type="number" id="lowStockInput" placeholder="E.G. 2" value="2" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-success" style="padding: 12px 24px;">Save & Auto-Generate Barcode</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- VIEW 3: CENTRAL INVENTORY WITH ADD MASTER ITEM BUTTON -->
+      <div id="view-inventory" class="view-content">
+        <div class="card">
+          <div class="card-title-bar">
+            <div class="card-title">Central Inventory List (Sorted Alphabetically by Part Name)</div>
+            <button class="btn btn-primary" onclick="openQuickAddMasterModal()">➕ Add New Master Item</button>
+          </div>
+          
+          <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="inventorySearch" class="search-input" placeholder="SEARCH INVENTORY OEM, PART NAME, BRAND, SUPPLIER, BARCODE..." oninput="renderInventoryGrid()">
+          </div>
+
+          <div id="inventoryRowContainer">
+            <!-- Dynamically populated Master Item Rows with expandable Batch Boxes -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DIRECT BATCH RESTOCK MODAL -->
+  <div id="restockModal" class="modal-overlay" onclick="closeRestockOnOverlay(event)">
+    <div class="modal-card" style="max-width: 450px;">
+      <div class="modal-header">
+        <div>
+          <h3>📦 RESTOCK BATCH</h3>
+          <span id="restockBatchSub" class="modal-subtitle">BATCH: ---</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeRestockModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="restockForm">
+          <input type="hidden" id="restockBatchCodeInput">
+          
+          <div class="form-group">
+            <label>Current Stock</label>
+            <input type="text" id="restockCurrentStock" readonly style="background:#f1f5f9; font-weight:bold; color:#0f172a;">
+          </div>
+
+          <div class="form-group">
+            <label>Quantity to Add (Pcs/Sets/Boxes)</label>
+            <input type="number" id="restockAddQty" min="1" placeholder="E.G. 10, 20" required autofocus>
+          </div>
+
+          <button type="submit" class="btn btn-success" style="width:100%; justify-content:center; padding:12px; margin-top:10px;">➕ Update & Restock Batch</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK ADD CODING / NEW BATCH MODAL -->
+  <div id="quickCodingModal" class="modal-overlay" onclick="closeQuickCodingOnOverlay(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3>➕ NEW SUPPLIER CODING BATCH</h3>
+          <span id="quickCodingMasterSub" class="modal-subtitle">MASTER ITEM: ---</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeQuickCodingModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="quickCodingForm">
+          <input type="hidden" id="quickMasterIdInput">
+          <div class="form-group">
+            <label>Select Supplier</label>
+            <select id="qSupplierInput" required>
+              <option value="">SELECT SUPPLIER...</option>
+              <option value="ABC AUTO SUPPLY CO.">ABC AUTO SUPPLY CO.</option>
+              <option value="JAPAPARTS TRADING">JAPAPARTS TRADING</option>
+              <option value="TOYOTA GENUINE PARTS DIRECT">TOYOTA GENUINE PARTS DIRECT</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Cost Price (₱)</label>
+              <input type="number" step="0.01" id="qCostInput" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+              <label>Selling Price / SRP (₱)</label>
+              <input type="number" step="0.01" id="qSellingInput" placeholder="0.00" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Initial Stock Count</label>
+              <input type="number" id="qStockInput" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label>Low Stock Warning Limit ⚠️</label>
+              <input type="number" id="qLowStockInput" value="2" required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-success" style="width:100%; justify-content:center; padding:12px; margin-top:10px;">Save New Batch & Generate Barcode</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ITEM DETAIL POPUP MODAL -->
+  <div id="itemModal" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalPartName">PART NAME</h3>
+          <span id="modalOemSubtitle" class="modal-subtitle">OEM: ---</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="modalGalleryMain" class="modal-gallery-main">⚙️</div>
+        <div id="modalThumbRow" class="modal-thumb-row"></div>
+
+        <div class="info-profile-grid">
+          <div class="profile-item">
+            <div class="profile-label">Brand</div>
+            <div id="mBrand" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item">
+            <div class="profile-label">OEM / Part Number</div>
+            <div id="mOem" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item">
+            <div class="profile-label">Vehicle Make</div>
+            <div id="mMake" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item">
+            <div class="profile-label">Vehicle Model</div>
+            <div id="mModel" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item">
+            <div class="profile-label">Year / Model Year</div>
+            <div id="mYear" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item">
+            <div class="profile-label">Engine / Engine Code</div>
+            <div id="mEngine" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item">
+            <div class="profile-label">Unit / Packaging</div>
+            <div id="mUnit" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item">
+            <div class="profile-label">Position</div>
+            <div id="mPosition" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item">
+            <div class="profile-label">Country of Origin</div>
+            <div id="mOrigin" class="profile-value">---</div>
+          </div>
+
+          <div class="profile-item full-width">
+            <div class="profile-label">Description / Additional Details</div>
+            <div id="mDesc" class="profile-value">---</div>
+          </div>
+        </div>
+
+        <div class="modal-batches-section">
+          <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">
+            🏷️ Associated Inventory Batches & Barcodes
+          </div>
+          <div id="modalBatchesList"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN LIGHTBOX MODAL -->
+  <div id="lightboxOverlay" class="lightbox-overlay" onclick="closeLightboxOnOverlay(event)">
+    <div class="lightbox-card">
+      <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+      <button class="lightbox-btn lightbox-prev" onclick="prevLightboxImage()">❮</button>
+      <button class="lightbox-btn lightbox-next" onclick="nextLightboxImage()">❯</button>
+      <img id="lightboxImg" class="lightbox-img" src="" alt="Enlarged View">
+      <div id="lightboxCounter" class="lightbox-counter">1 / 1</div>
+    </div>
+  </div>
+
+  <script>
+    let currentUploadedImages = [];
+
+    function toUpper(val) {
+      return val ? val.toString().trim().toUpperCase() : '';
+    }
+
+    let masterItems = [
+      { id: 0, oem: "90915-YZZD1", brand: "TOYOTA", partName: "OIL FILTER", make: "TOYOTA", model: "VIOS", year: "2018–2022", engine: "1NZ-FE", unitType: "pc", pcsPerBox: "", sizePerPc: "", position: "ENGINE BAY", origin: "JAPAN", description: "STANDARD GENUINE TOYOTA OIL FILTER", images: [], icon: "⚙️" },
+      { id: 1, oem: "BP-2045", brand: "AKEBONO", partName: "BRAKE PAD SET", make: "TOYOTA", model: "INNOVA", year: "2016–2021", engine: "2TR-FE", unitType: "set", pcsPerBox: "", sizePerPc: "", position: "FRONT", origin: "JAPAN", description: "CERAMIC BRAKE PADS HIGH DURABILITY", images: [], icon: "🔩" },
+      { id: 2, oem: "AF-3320", brand: "VIC", partName: "AIR FILTER", make: "MITSUBISHI", model: "MONTERO", year: "2016–2023", engine: "4N15", unitType: "pc", pcsPerBox: "", sizePerPc: "", position: "ENGINE AIR BOX", origin: "JAPAN", description: "OEM REPLACEMENT FILTER ELEMENT", images: [], icon: "⚙️" }
+    ];
+
+    let inventoryBatches = [
+      { code: "IT1-COD-001", barcode: "BAR-IT1-COD-001", masterId: 0, supplier: "ABC AUTO SUPPLY CO.", cost: 350, price: 450, stock: 24, lowStockLimit: 5 },
+      { code: "IT2-COD-001", barcode: "BAR-IT2-COD-001", masterId: 1, supplier: "JAPAPARTS TRADING", cost: 1400, price: 1850, stock: 2, lowStockLimit: 2 },
+      { code: "IT2-COD-002", barcode: "BAR-IT2-COD-002", masterId: 1, supplier: "TOYOTA GENUINE PARTS DIRECT", cost: 500, price: 1000, stock: 10, lowStockLimit: 2 },
+      { code: "IT3-COD-001", barcode: "BAR-IT3-COD-001", masterId: 2, supplier: "ABC AUTO SUPPLY CO.", cost: 450, price: 620, stock: 0, lowStockLimit: 3 }
+    ];
+
+    let cart = []; // POS CART STATE
+
+    let selectedMasterIndex = 0;
+    let modalActiveImages = [];
+    let activeModalImgIndex = 0;
+
+    // LIVE CAMERA SCANNER VARIABLES
+    let html5QrCode = null;
+    let isCameraActive = false;
+    let lastScannedCode = "";
+    let lastScanTime = 0;
+
+    function generateItemBatchCode(masterId) {
+      const existingBatches = inventoryBatches.filter(b => b.masterId === masterId);
+      const nextSeq = existingBatches.length + 1;
+      const formattedSeq = String(nextSeq).padStart(3, '0');
+      return `IT${masterId + 1}-COD-${formattedSeq}`;
+    }
+
+    /* LIVE CAMERA SCANNER LOGIC (OPTION 2) */
+    function toggleCameraScanner() {
+      if (isCameraActive) {
+        stopCameraScanner();
+      } else {
+        startCameraScanner();
+      }
+    }
+
+    function startCameraScanner() {
+      const wrapper = document.getElementById('interactive-camera-wrapper');
+      const btn = document.getElementById('camToggleBtn');
+
+      wrapper.style.display = 'block';
+      html5QrCode = new Html5Qrcode("reader");
+
+      const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+      html5QrCode.start(
+        { facingMode: "environment" }, // Back camera sa CP o default webcam sa laptop
+        config,
+        (decodedText) => {
+          const now = Date.now();
+          // Debounce para hindi paulit-ulit na mag-add sa cart ang parehong barcode sa loob ng 2 segundo
+          if (decodedText === lastScannedCode && (now - lastScanTime) < 2000) {
+            return;
+          }
+          lastScannedCode = decodedText;
+          lastScanTime = now;
+
+          handleCameraScanSuccess(decodedText);
+        }
+      ).then(() => {
+        isCameraActive = true;
+        btn.textContent = '🛑 Stop Camera Scanner';
+        btn.className = 'btn btn-danger';
+      }).catch(err => {
+        alert("Hindi mabuksan ang Camera: Siguraduhing pinayagan (Allow Permission) ang camera sa browser settings.");
+        wrapper.style.display = 'none';
+      });
+    }
+
+    function stopCameraScanner() {
+      if (html5QrCode && isCameraActive) {
+        html5QrCode.stop().then(() => {
+          isCameraActive = false;
+          document.getElementById('interactive-camera-wrapper').style.display = 'none';
+          const btn = document.getElementById('camToggleBtn');
+          btn.textContent = '📷 Open Live Camera Scanner';
+          btn.className = 'btn btn-primary';
+        }).catch(err => console.error(err));
+      }
+    }
+
+    function handleCameraScanSuccess(scannedCode) {
+      const query = scannedCode.trim().toUpperCase();
+      const batch = inventoryBatches.find(b => 
+        b.barcode.toUpperCase() === query || b.code.toUpperCase() === query
+      );
+
+      if (batch) {
+        addToCart(batch.code);
+      } else {
+        alert(`Hindi mahanap ang item para sa Barcode: ${scannedCode}`);
+      }
+    }
+
+    /* POS SALE / CHECKOUT LOGIC */
+    function renderSaleGrid() {
+      const grid = document.getElementById('saleCatalogGrid');
+      const search = document.getElementById('saleSearchInput').value.trim().toUpperCase();
+      grid.innerHTML = '';
+
+      inventoryBatches.forEach(batch => {
+        const master = masterItems.find(m => m.id === batch.masterId);
+        if (!master) return;
+
+        const matches = batch.code.toUpperCase().includes(search) ||
+                        batch.barcode.toUpperCase().includes(search) ||
+                        master.oem.toUpperCase().includes(search) ||
+                        master.partName.toUpperCase().includes(search) ||
+                        master.brand.toUpperCase().includes(search);
+
+        if (matches) {
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.onclick = () => addToCart(batch.code);
+
+          const badgeClass = batch.stock > 0 ? 'stock-green' : 'stock-red';
+
+          card.innerHTML = `
+            <div>
+              <div class="card-img-placeholder" style="height:70px;">${renderCardMedia(master)}</div>
+              <div class="item-title">${master.partName} - ${master.brand}</div>
+              <div class="item-oem">OEM: ${master.oem} | ${batch.code}</div>
+              <div class="item-subtitle">${batch.supplier}</div>
+            </div>
+            <div class="card-footer">
+              <div class="item-price">₱${batch.price.toFixed(2)}</div>
+              <span class="stock-badge ${badgeClass}">STOCK: ${batch.stock}</span>
+            </div>
+          `;
+          grid.appendChild(card);
+        }
+      });
+    }
+
+    function handleSaleBarcodeKey(event) {
+      if (event.key === 'Enter') {
+        const query = event.target.value.trim().toUpperCase();
+        if (!query) return;
+
+        const exactBatch = inventoryBatches.find(b => 
+          b.barcode.toUpperCase() === query || b.code.toUpperCase() === query
+        );
+
+        if (exactBatch) {
+          addToCart(exactBatch.code);
+          event.target.value = '';
+          renderSaleGrid();
+        }
+      }
+    }
+
+    function addToCart(batchCode) {
+      const batch = inventoryBatches.find(b => b.code === batchCode);
+      if (!batch) return;
+
+      if (batch.stock <= 0) {
+        alert('Out of stock na ang item na ito!');
+        return;
+      }
+
+      const existingInCart = cart.find(item => item.batchCode === batchCode);
+      if (existingInCart) {
+        if (existingInCart.qty + 1 > batch.stock) {
+          alert(`Hindi pwedeng lumagpas sa available stock (${batch.stock})!`);
+          return;
+        }
+        existingInCart.qty += 1;
+      } else {
+        const master = masterItems.find(m => m.id === batch.masterId);
+        cart.push({
+          batchCode: batch.code,
+          partName: master ? master.partName : 'ITEM',
+          brand: master ? master.brand : '',
+          price: batch.price,
+          qty: 1,
+          maxStock: batch.stock
+        });
+      }
+
+      updateCartUI();
+    }
+
+    function updateCartQty(batchCode, delta) {
+      const item = cart.find(i => i.batchCode === batchCode);
+      if (!item) return;
+
+      const newQty = item.qty + delta;
+      if (newQty > item.maxStock) {
+        alert(`Maximum available stock is ${item.maxStock}`);
+        return;
+      }
+
+      if (newQty <= 0) {
+        removeFromCart(batchCode);
+      } else {
+        item.qty = newQty;
+        updateCartUI();
+      }
+    }
+
+    function removeFromCart(batchCode) {
+      cart = cart.filter(i => i.batchCode !== batchCode);
+      updateCartUI();
+    }
+
+    function clearCart() {
+      cart = [];
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      const tbody = document.getElementById('cartTableBody');
+      tbody.innerHTML = '';
+
+      let totalItems = 0;
+      let grandTotal = 0;
+
+      if (cart.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:20px;">Cart is empty. Scan or click an item.</td></tr>`;
+      } else {
+        cart.forEach(item => {
+          const itemTotal = item.price * item.qty;
+          totalItems += item.qty;
+          grandTotal += itemTotal;
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>
+              <strong>${item.partName}</strong><br>
+              <small style="color:#64748b;">${item.batchCode}</small>
+            </td>
+            <td style="text-align:center;">
+              <button class="cart-qty-btn" onclick="updateCartQty('${item.batchCode}', -1)">-</button>
+              <span style="margin: 0 4px; font-weight:bold;">${item.qty}</span>
+              <button class="cart-qty-btn" onclick="updateCartQty('${item.batchCode}', 1)">+</button>
+            </td>
+            <td style="text-align:right;">₱${item.price.toFixed(2)}</td>
+            <td style="text-align:right; font-weight:bold;">₱${itemTotal.toFixed(2)}</td>
+            <td style="text-align:center;">
+              <button class="btn btn-danger" style="font-size:10px; padding:2px 6px;" onclick="removeFromCart('${item.batchCode}')">&times;</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('cartTotalItems').textContent = totalItems;
+      document.getElementById('cartGrandTotal').textContent = `₱${grandTotal.toFixed(2)}`;
+      calculateChange();
+    }
+
+    function calculateChange() {
+      const cash = parseFloat(document.getElementById('cashTenderedInput').value) || 0;
+      let grandTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const change = cash - grandTotal;
+      document.getElementById('cartChangeAmount').textContent = `₱${change >= 0 ? change.toFixed(2) : '0.00'}`;
+    }
+
+    function processCheckout() {
+      if (cart.length === 0) {
+        alert('Walang laman ang Cart!');
+        return;
+      }
+
+      const grandTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const cash = parseFloat(document.getElementById('cashTenderedInput').value) || 0;
+
+      if (cash < grandTotal) {
+        alert('Kulang ang ibinayad na Cash!');
+        return;
+      }
+
+      // Deduct Stock
+      cart.forEach(cItem => {
+        const batch = inventoryBatches.find(b => b.code === cItem.batchCode);
+        if (batch) {
+          batch.stock -= cItem.qty;
+        }
+      });
+
+      alert(`✅ Transaction Complete!\n--------------------\nTotal Amount: ₱${grandTotal.toFixed(2)}\nCash Tendered: ₱${cash.toFixed(2)}\nChange: ₱${(cash - grandTotal).toFixed(2)}\n--------------------\nSalamat! Processing thermal receipt...`);
+
+      clearCart();
+      document.getElementById('cashTenderedInput').value = '';
+      renderSaleGrid();
+      renderInventoryGrid();
+    }
+
+    /* MASTER ITEM FORM & IMAGE HANDLING */
+    function handleImageUpload(event) {
+      const files = Array.from(event.target.files);
+
+      if (currentUploadedImages.length + files.length > 10) {
+        alert('Maximum 10 pictures allowed per item!');
+      }
+
+      const availableSlots = 10 - currentUploadedImages.length;
+      const filesToProcess = files.slice(0, availableSlots);
+
+      let processedCount = 0;
+      filesToProcess.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          currentUploadedImages.push(e.target.result);
+          processedCount++;
+          if (processedCount === filesToProcess.length) {
+            renderFormImagePreviews();
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      event.target.value = '';
+    }
+
+    function renderFormImagePreviews() {
+      const preview = document.getElementById('imagePreview');
+      if (currentUploadedImages.length === 0) {
+        preview.innerHTML = '<span style="color:#94a3b8; font-size:13px;">No images uploaded yet (0/10)</span>';
+        return;
+      }
+
+      let html = `<div class="thumb-grid">`;
+      currentUploadedImages.forEach((img, idx) => {
+        html += `
+          <div class="thumb-item">
+            <img src="${img}">
+            <button type="button" class="remove-thumb-btn" onclick="removeUploadedImage(${idx})">&times;</button>
+          </div>
+        `;
+      });
+      html += `</div><div style="font-size:12px; font-weight:700; color:#2563eb; margin-top:8px;">${currentUploadedImages.length}/10 Pictures Uploaded</div>`;
+      preview.innerHTML = html;
+    }
+
+    function removeUploadedImage(idx) {
+      currentUploadedImages.splice(idx, 1);
+      renderFormImagePreviews();
+    }
+
+    function switchView(viewId, element) {
+      document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+      document.getElementById(viewId).classList.add('active');
+      if(element) element.classList.add('active');
+
+      const titles = {
+        'view-sale': 'Point of Sale / Checkout Module',
+        'view-master': 'Master Item Management',
+        'view-coding': 'Item Coding & Inventory Entry',
+        'view-inventory': 'Central Inventory'
+      };
+      document.getElementById('pageTitle').textContent = titles[viewId];
+
+      if (viewId === 'view-sale') { 
+        renderSaleGrid(); 
+        document.getElementById('saleSearchInput').focus(); 
+      } else {
+        stopCameraScanner(); // Patayin ang live camera kapag umalis sa Sale tab
+      }
+
+      if (viewId === 'view-master') renderStep1Grid();
+      if (viewId === 'view-coding') renderStep2SelectGrid();
+      if (viewId === 'view-inventory') renderInventoryGrid();
+    }
+
+    function toggleBoxPackagingFields() {
+      const unitType = document.getElementById('unitInput').value;
+      document.getElementById('boxFields').style.display = unitType === 'box' ? 'block' : 'none';
+    }
+
+    function renderCardMedia(item) {
+      if (item.images && item.images.length > 0) {
+        const badge = item.images.length > 1 ? `<span class="photo-count-badge">📷 ${item.images.length}</span>` : '';
+        return `<img src="${item.images[0]}" alt="${item.partName}">${badge}`;
+      }
+      return item.icon || '⚙️';
+    }
+
+    function formatValueOrNA(val) {
+      if (!val || val.toString().trim() === "") {
+        return `<span class="na-text">N/A</span>`;
+      }
+      return val.toString().toUpperCase();
+    }
+
+    function formatPackagingText(item) {
+      if (item.unitType === 'box') {
+        const pcs = item.pcsPerBox ? `${item.pcsPerBox} PCS` : 'N/A PCS';
+        const sz = item.sizePerPc ? item.sizePerPc.toUpperCase() : 'N/A SIZE';
+        return `BOX (${pcs} X ${sz})`;
+      } else if (item.unitType === 'set') {
+        return 'SET';
+      }
+      return '1 PC (PIECE)';
+    }
+
+    function buildStockBadgeHtml(batch, unitTypeLabel) {
+      const currentStock = batch.stock;
+      const limit = batch.lowStockLimit || 0;
+
+      if (currentStock === 0) {
+        return `<span class="stock-badge stock-red">0 OUT OF STOCK</span>`;
+      } else if (currentStock <= limit) {
+        return `<span class="stock-badge stock-orange">⚠️ ${currentStock} LOW STOCK (LIMIT: ${limit})</span>`;
+      }
+      return `<span class="stock-badge stock-green">${currentStock} ${unitTypeLabel.toUpperCase()}</span>`;
+    }
+
+    function openQuickAddMasterModal() {
+      switchView('view-master', document.querySelectorAll('.nav-item')[1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openRestockModal(batchCode) {
+      const batch = inventoryBatches.find(b => b.code === batchCode);
+      if (!batch) return;
+
+      const master = masterItems.find(m => m.id === batch.masterId) || { partName: 'ITEM' };
+
+      document.getElementById('restockBatchCodeInput').value = batch.code;
+      document.getElementById('restockBatchSub').textContent = `${batch.code} | ${master.partName} - ${master.brand || ''} (${batch.supplier})`;
+      document.getElementById('restockCurrentStock').value = `${batch.stock} ${master.unitType === 'set' ? 'SETS' : (master.unitType === 'box' ? 'BOXES' : 'PCS')}`;
+      document.getElementById('restockModal').style.display = 'flex';
+    }
+
+    function closeRestockModal() {
+      document.getElementById('restockModal').style.display = 'none';
+      document.getElementById('restockForm').reset();
+    }
+
+    function closeRestockOnOverlay(event) {
+      if (event.target.id === 'restockModal') closeRestockModal();
+    }
+
+    document.getElementById('restockForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const batchCode = document.getElementById('restockBatchCodeInput').value;
+      const addQty = parseInt(document.getElementById('restockAddQty').value) || 0;
+
+      const batch = inventoryBatches.find(b => b.code === batchCode);
+      if (batch && addQty > 0) {
+        batch.stock += addQty;
+        closeRestockModal();
+        renderInventoryGrid();
+        renderSaleGrid();
+        alert(`Successfully added +${addQty} stock to ${batch.code}! New Total Stock: ${batch.stock}`);
+      }
+    });
+
+    function openQuickCodingModal(masterId) {
+      const master = masterItems.find(m => m.id === masterId);
+      if (!master) return;
+
+      document.getElementById('quickMasterIdInput').value = master.id;
+      document.getElementById('quickCodingMasterSub').textContent = `${master.partName} - ${master.brand} (${master.oem})`;
+      document.getElementById('quickCodingModal').style.display = 'flex';
+    }
+
+    function closeQuickCodingModal() {
+      document.getElementById('quickCodingModal').style.display = 'none';
+      document.getElementById('quickCodingForm').reset();
+    }
+
+    function closeQuickCodingOnOverlay(event) {
+      if (event.target.id === 'quickCodingModal') closeQuickCodingModal();
+    }
+
+    document.getElementById('quickCodingForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const masterId = parseInt(document.getElementById('quickMasterIdInput').value);
+      const supplier = toUpper(document.getElementById('qSupplierInput').value);
+      const cost = parseFloat(document.getElementById('qCostInput').value);
+      const price = parseFloat(document.getElementById('qSellingInput').value);
+      const stock = parseInt(document.getElementById('qStockInput').value);
+      const lowStockLimit = parseInt(document.getElementById('qLowStockInput').value) || 0;
+
+      const batchCode = generateItemBatchCode(masterId);
+      const barcodeCode = `BAR-${batchCode}`;
+
+      const newBatch = {
+        code: batchCode,
+        barcode: barcodeCode,
+        masterId: masterId,
+        supplier: supplier,
+        cost: cost,
+        price: price,
+        stock: stock,
+        lowStockLimit: lowStockLimit
+      };
+
+      inventoryBatches.push(newBatch);
+      closeQuickCodingModal();
+      renderInventoryGrid();
+      renderSaleGrid();
+      alert(`New Coding Batch ${newBatch.code} successfully added for this item!`);
+    });
+
+    function renderStep1Grid() {
+      const grid = document.getElementById('step1Grid');
+      const search = document.getElementById('step1Search').value.toUpperCase();
+      grid.innerHTML = '';
+
+      const filtered = masterItems.filter(item => 
+        item.oem.toUpperCase().includes(search) ||
+        item.partName.toUpperCase().includes(search) ||
+        item.brand.toUpperCase().includes(search) ||
+        item.model.toUpperCase().includes(search)
+      );
+
+      filtered.forEach(item => {
+        const originalIndex = masterItems.findIndex(m => m.id === item.id);
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.onclick = () => openItemModal(originalIndex);
+
+        card.innerHTML = `
+          <div>
+            <div class="card-img-placeholder">${renderCardMedia(item)}</div>
+            <div class="item-title">${item.partName} - ${item.brand}</div>
+            <div class="item-oem">OEM: ${item.oem}</div>
+            <div class="item-subtitle">${item.make || ''} ${item.model || ''} ${item.engine ? '(' + item.engine + ')' : ''}</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function openItemModal(index) {
+      const item = masterItems[index];
+      if (!item) return;
+
+      document.getElementById('modalPartName').textContent = `${toUpper(item.partName)} - ${toUpper(item.brand)}` || 'ITEM PROFILE';
+      document.getElementById('modalOemSubtitle').textContent = `OEM: ${toUpper(item.oem) || 'N/A'}`;
+
+      modalActiveImages = item.images && item.images.length > 0 ? item.images : [];
+      activeModalImgIndex = 0;
+
+      renderModalGallery();
+
+      document.getElementById('mBrand').innerHTML = formatValueOrNA(item.brand);
+      document.getElementById('mOem').innerHTML = formatValueOrNA(item.oem);
+      document.getElementById('mMake').innerHTML = formatValueOrNA(item.make);
+      document.getElementById('mModel').innerHTML = formatValueOrNA(item.model);
+      document.getElementById('mYear').innerHTML = formatValueOrNA(item.year);
+      document.getElementById('mEngine').innerHTML = formatValueOrNA(item.engine);
+      document.getElementById('mUnit').innerHTML = formatPackagingText(item);
+      document.getElementById('mPosition').innerHTML = formatValueOrNA(item.position);
+      document.getElementById('mOrigin').innerHTML = formatValueOrNA(item.origin);
+      document.getElementById('mDesc').innerHTML = formatValueOrNA(item.description);
+
+      const batchesList = document.getElementById('modalBatchesList');
+      const relatedBatches = inventoryBatches
+        .filter(b => b.masterId === item.id)
+        .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }));
+
+      if (relatedBatches.length > 0) {
+        batchesList.innerHTML = '';
+        relatedBatches.forEach((batch, bIdx) => {
+          const div = document.createElement('div');
+          div.className = 'batch-barcode-card';
+          const svgId = `modalBarcode_${item.id}_${bIdx}`;
+          const badgeHtml = buildStockBadgeHtml(batch, item.unitType === 'set' ? 'SETS' : (item.unitType === 'box' ? 'BOXES' : 'PCS'));
+
+          div.innerHTML = `
+            <div class="batch-barcode-info">
+              <strong>${batch.code}</strong> | ${batch.supplier}<br>
+              <span style="color:#16a34a; font-weight:700;">₱${batch.price.toFixed(2)}</span>
+              <div style="margin-top:4px;">${badgeHtml}</div>
+            </div>
+            <div style="text-align:right;">
+              <svg id="${svgId}" class="barcode-svg"></svg>
+              <div style="display:flex; gap:4px; margin-top:4px;">
+                <button class="btn btn-primary" style="font-size:10px; padding:3px 8px;" onclick="openRestockModal('${batch.code}')">➕ Restock</button>
+                <button class="btn btn-secondary" style="font-size:10px; padding:3px 8px;" onclick="printSticker('${batch.barcode}', '${item.partName}', ${batch.price})">🖨️ Sticker</button>
+              </div>
+            </div>
+          `;
+          batchesList.appendChild(div);
+
+          setTimeout(() => {
+            JsBarcode(`#${svgId}`, batch.barcode, { format: "CODE128", width: 1.5, height: 25, fontSize: 10 });
+          }, 50);
+        });
+      } else {
+        batchesList.innerHTML = `<span class="na-text">No Coding/Stock generated yet in Step 2.</span>`;
+      }
+
+      document.getElementById('itemModal').style.display = 'flex';
+    }
+
+    function printSticker(barcode, name, price) {
+      alert(`[PRINT STICKER SENT TO THERMAL PRINTER]\n---------------------------\n${name}\nBARCODE: ${barcode}\nPRICE: ₱${price.toFixed(2)}\n---------------------------`);
+    }
+
+    function renderModalGallery() {
+      const mainContainer = document.getElementById('modalGalleryMain');
+      const thumbRow = document.getElementById('modalThumbRow');
+
+      if (modalActiveImages.length > 0) {
+        mainContainer.innerHTML = `
+          <img src="${modalActiveImages[activeModalImgIndex]}" onclick="openLightbox(${activeModalImgIndex})">
+          <span class="click-zoom-hint">🔍 CLICK IMAGE TO ENLARGE</span>
+        `;
+
+        if (modalActiveImages.length > 1) {
+          thumbRow.style.display = 'flex';
+          thumbRow.innerHTML = modalActiveImages.map((img, idx) => `
+            <img src="${img}" class="modal-thumb ${idx === activeModalImgIndex ? 'active' : ''}" onclick="setModalMainImg(${idx})">
+          `).join('');
+        } else {
+          thumbRow.style.display = 'none';
+        }
+      } else {
+        mainContainer.innerHTML = '⚙️';
+        mainContainer.style.cursor = 'default';
+        thumbRow.style.display = 'none';
+      }
+    }
+
+    function setModalMainImg(idx) {
+      activeModalImgIndex = idx;
+      renderModalGallery();
+    }
+
+    function closeModal() {
+      document.getElementById('itemModal').style.display = 'none';
+    }
+
+    function closeModalOnOverlay(event) {
+      if (event.target.id === 'itemModal') closeModal();
+    }
+
+    function openLightbox(index) {
+      if (!modalActiveImages || modalActiveImages.length === 0) return;
+      activeModalImgIndex = index;
+      updateLightboxDisplay();
+      document.getElementById('lightboxOverlay').style.display = 'flex';
+    }
+
+    function updateLightboxDisplay() {
+      document.getElementById('lightboxImg').src = modalActiveImages[activeModalImgIndex];
+      document.getElementById('lightboxCounter').textContent = `${activeModalImgIndex + 1} / ${modalActiveImages.length}`;
+    }
+
+    function prevLightboxImage() {
+      if (modalActiveImages.length === 0) return;
+      activeModalImgIndex = (activeModalImgIndex - 1 + modalActiveImages.length) % modalActiveImages.length;
+      updateLightboxDisplay();
+    }
+
+    function nextLightboxImage() {
+      if (modalActiveImages.length === 0) return;
+      activeModalImgIndex = (activeModalImgIndex + 1) % modalActiveImages.length;
+      updateLightboxDisplay();
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightboxOverlay').style.display = 'none';
+    }
+
+    function closeLightboxOnOverlay(event) {
+      if (event.target.id === 'lightboxOverlay') closeLightbox();
+    }
+
+    function renderStep2SelectGrid() {
+      const grid = document.getElementById('step2SelectGrid');
+      const search = document.getElementById('step2Search').value.toUpperCase();
+      grid.innerHTML = '';
+
+      const filtered = masterItems.filter(item => 
+        item.oem.toUpperCase().includes(search) ||
+        item.partName.toUpperCase().includes(search) ||
+        item.brand.toUpperCase().includes(search)
+      );
+
+      filtered.forEach((item) => {
+        const originalIndex = masterItems.findIndex(m => m.id === item.id);
+        const isSelected = originalIndex === selectedMasterIndex;
+
+        const card = document.createElement('div');
+        card.className = `item-card ${isSelected ? 'selected' : ''}`;
+        card.onclick = () => selectMasterForCoding(originalIndex);
+
+        card.innerHTML = `
+          <div>
+            <div class="card-img-placeholder" style="height:80px;">${renderCardMedia(item)}</div>
+            <div class="item-title">${item.partName} - ${item.brand}</div>
+            <div class="item-oem">OEM: ${item.oem}</div>
+            <div class="item-subtitle">${item.model || ''} ${item.engine ? '(' + item.engine + ')' : ''}</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      updateSelectedMasterBanner();
+    }
+
+    function selectMasterForCoding(index) {
+      selectedMasterIndex = index;
+      renderStep2SelectGrid();
+    }
+
+    function updateSelectedMasterBanner() {
+      const item = masterItems[selectedMasterIndex];
+      if (item) {
+        document.getElementById('selectedMasterText').innerHTML = 
+          `<strong>${item.partName} - ${item.brand}</strong> | OEM: <strong>${item.oem}</strong> | VEHICLE: ${item.make || ''} ${item.model || ''}`;
+      }
+    }
+
+    function renderInventoryGrid() {
+      const container = document.getElementById('inventoryRowContainer');
+      const search = document.getElementById('inventorySearch').value.toUpperCase();
+      container.innerHTML = '';
+
+      const sortedMasterItems = [...masterItems].sort((a, b) => 
+        a.partName.localeCompare(b.partName)
+      );
+
+      sortedMasterItems.forEach((master, mIdx) => {
+        const batches = inventoryBatches
+          .filter(b => b.masterId === master.id)
+          .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }));
+
+        const totalStock = batches.reduce((sum, b) => sum + b.stock, 0);
+
+        const matchesMaster = master.oem.toUpperCase().includes(search) ||
+                              master.partName.toUpperCase().includes(search) ||
+                              master.brand.toUpperCase().includes(search) ||
+                              master.model.toUpperCase().includes(search);
+
+        const matchesBatch = batches.some(b => 
+          b.code.toUpperCase().includes(search) ||
+          b.barcode.toUpperCase().includes(search) ||
+          b.supplier.toUpperCase().includes(search)
+        );
+
+        if (matchesMaster || matchesBatch) {
+          const rowCard = document.createElement('div');
+          rowCard.className = 'master-row-card';
+
+          const masterMedia = renderCardMedia(master);
+          const batchesCount = batches.length;
+
+          rowCard.innerHTML = `
+            <div class="master-row-header">
+              <div class="master-row-left" onclick="toggleInventoryBatchPanel('batchPanel_${mIdx}')">
+                <div class="master-row-thumb">${masterMedia}</div>
+                <div>
+                  <div class="master-row-title">${master.partName} - ${master.brand}</div>
+                  <div class="master-row-sub">OEM: ${master.oem} | VEHICLE: ${master.make || ''} ${master.model || ''} (${master.engine || 'N/A'})</div>
+                </div>
+              </div>
+              <div class="master-row-actions">
+                <button class="btn btn-secondary" style="font-size:11px; padding:6px 12px;" onclick="openQuickCodingModal(${master.id})">➕ New Batch / Coding</button>
+                <div style="text-align:right; cursor:pointer;" onclick="toggleInventoryBatchPanel('batchPanel_${mIdx}')">
+                  <span class="stock-badge ${totalStock > 0 ? 'stock-green' : 'stock-red'}">STOCK: ${totalStock}</span>
+                  <div style="font-size:11px; font-weight:700; color:#2563eb; margin-top:4px;">${batchesCount} BATCH(ES) ▼</div>
+                </div>
+              </div>
+            </div>
+            
+            <div id="batchPanel_${mIdx}" class="batch-expand-panel" style="display: none;">
+              <div class="batch-panel-title">🏷️ ASSOCIATED BATCH CODINGS & SCANNABLE BARCODES</div>
+              <div id="batchGrid_${mIdx}" class="catalog-grid" style="margin-top:12px;"></div>
+            </div>
+          `;
+
+          container.appendChild(rowCard);
+
+          const batchGrid = rowCard.querySelector(`#batchGrid_${mIdx}`);
+          if (batches.length > 0) {
+            batches.forEach((batch, bIdx) => {
+              const bCard = document.createElement('div');
+              bCard.className = 'item-card';
+              const svgId = `inventorySvg_${mIdx}_${bIdx}`;
+              const badgeHtml = buildStockBadgeHtml(batch, master.unitType === 'set' ? 'SET' : (master.unitType === 'box' ? 'BOX' : 'PC'));
+
+              bCard.innerHTML = `
+                <div>
+                  <div class="item-title" style="color:#2563eb;">${batch.code}</div>
+                  <div class="item-subtitle" style="margin-bottom:6px;">SUPPLIER: ${batch.supplier}</div>
+                  
+                  <div class="barcode-card-box">
+                    <svg id="${svgId}" class="barcode-svg"></svg>
+                  </div>
+                </div>
+
+                <div class="card-footer">
+                  <div>
+                    <div class="item-price">₱${batch.price.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                    <div style="font-size:10px; color:#64748b;">COST: ₱${batch.cost.toFixed(2)}</div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div>${badgeHtml}</div>
+                    <div style="margin-top:6px; display:flex; gap:4px; justify-content:flex-end;">
+                      <button class="btn btn-primary" style="font-size:10px; padding:3px 8px;" onclick="openRestockModal('${batch.code}')">➕ Add Stock</button>
+                      <button class="btn btn-secondary" style="font-size:10px; padding:3px 8px;" onclick="printSticker('${batch.barcode}', '${master.partName}', ${batch.price})">🖨️ Sticker</button>
+                    </div>
+                  </div>
+                </div>
+              `;
+              batchGrid.appendChild(bCard);
+
+              setTimeout(() => {
+                if (document.getElementById(svgId)) {
+                  JsBarcode(`#${svgId}`, batch.barcode, { format: "CODE128", width: 1.4, height: 26, fontSize: 10 });
+                }
+              }, 40);
+            });
+          } else {
+            batchGrid.innerHTML = `<span class="na-text" style="padding:10px;">NO CODING / BATCH CREATED YET IN STEP 2. CLICK "➕ NEW BATCH / CODING" ABOVE TO ADD.</span>`;
+          }
+
+          if (search && matchesBatch) {
+            rowCard.querySelector(`#batchPanel_${mIdx}`).style.display = 'block';
+          }
+        }
+      });
+    }
+
+    function toggleInventoryBatchPanel(panelId) {
+      const panel = document.getElementById(panelId);
+      if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      }
+    }
+
+    document.getElementById('masterForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const unitType = document.getElementById('unitInput').value;
+
+      const newItem = {
+        id: masterItems.length,
+        oem: toUpper(document.getElementById('oemInput').value),
+        brand: toUpper(document.getElementById('brandInput').value),
+        partName: toUpper(document.getElementById('partNameInput').value),
+        make: toUpper(document.getElementById('vehicleMakeInput').value),
+        model: toUpper(document.getElementById('vehicleModelInput').value),
+        year: toUpper(document.getElementById('yearInput').value),
+        engine: toUpper(document.getElementById('engineInput').value),
+        unitType: unitType,
+        pcsPerBox: unitType === 'box' ? document.getElementById('pcsPerBoxInput').value : '',
+        sizePerPc: unitType === 'box' ? toUpper(document.getElementById('sizePerPcInput').value) : '',
+        position: toUpper(document.getElementById('positionInput').value),
+        origin: toUpper(document.getElementById('originInput').value),
+        description: toUpper(document.getElementById('descInput').value),
+        images: [...currentUploadedImages],
+        icon: "⚙️"
+      };
+
+      masterItems.push(newItem);
+      renderStep1Grid();
+      
+      this.reset();
+      currentUploadedImages = [];
+      renderFormImagePreviews();
+      alert('Master Item saved!');
+    });
+
+    document.getElementById('codingForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      if (selectedMasterIndex === null || !masterItems[selectedMasterIndex]) {
+        alert('Pumili muna ng Target Master Item!');
+        return;
+      }
+
+      const targetMaster = masterItems[selectedMasterIndex];
+      const supplier = toUpper(document.getElementById('supplierInput').value);
+      const cost = parseFloat(document.getElementById('costInput').value);
+      const price = parseFloat(document.getElementById('sellingInput').value);
+      const stock = parseInt(document.getElementById('stockInput').value);
+      const lowStockLimit = parseInt(document.getElementById('lowStockInput').value) || 0;
+
+      const batchCode = generateItemBatchCode(targetMaster.id);
+      const barcodeCode = `BAR-${batchCode}`;
+
+      const newBatch = {
+        code: batchCode,
+        barcode: barcodeCode,
+        masterId: targetMaster.id,
+        supplier: supplier,
+        cost: cost,
+        price: price,
+        stock: stock,
+        lowStockLimit: lowStockLimit
+      };
+
+      inventoryBatches.push(newBatch);
+      this.reset();
+      document.getElementById('lowStockInput').value = '2';
+      alert(`Item Coding ${newBatch.code} saved with Low Stock Alert limit set to ${lowStockLimit}!`);
+    });
+
+    // INIT POS SALE VIEW ON LOAD
+    renderSaleGrid();
+  </script>
+
+</body>
+</html>
